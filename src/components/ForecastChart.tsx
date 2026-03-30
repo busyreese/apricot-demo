@@ -11,7 +11,7 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
-import { DayForecast, CONDITION_CONFIG, BASE_DAILY_SALES } from "@/lib/weather";
+import { DayForecast, CONDITION_CONFIG } from "@/lib/weather";
 
 interface ForecastChartProps {
   days: DayForecast[];
@@ -56,6 +56,8 @@ function CustomTooltip({ active, payload }: TooltipProps) {
 }
 
 export default function ForecastChart({ days }: ForecastChartProps) {
+  const dailyBaseline = days[0]?.baseSales ?? 0;
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
@@ -63,7 +65,7 @@ export default function ForecastChart({ days }: ForecastChartProps) {
           7-Day Sales Forecast
         </h2>
         <span className="text-xs text-gray-400">
-          Dashed line = £{(BASE_DAILY_SALES / 1000).toFixed(1)}k daily baseline
+          Dashed line = £{(dailyBaseline / 1000).toFixed(1)}k daily baseline
         </span>
       </div>
 
@@ -96,7 +98,7 @@ export default function ForecastChart({ days }: ForecastChartProps) {
           />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f8fafc" }} />
           <ReferenceLine
-            y={BASE_DAILY_SALES}
+            y={dailyBaseline}
             stroke="#cbd5e1"
             strokeDasharray="6 3"
           />

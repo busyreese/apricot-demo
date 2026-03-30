@@ -83,10 +83,13 @@ export interface WeatherForecastData {
 }
 
 export async function fetchWeatherForecast(
-  cityName: string
+  cityName: string,
+  baseWeeklySales: number = BASE_WEEKLY_SALES
 ): Promise<WeatherForecastData> {
   const city = UK_CITIES.find((c) => c.name === cityName);
   if (!city) throw new Error(`Unknown city: ${cityName}`);
+
+  const baseDailySales = baseWeeklySales / 7;
 
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", city.lat.toString());
@@ -109,7 +112,7 @@ export async function fetchWeatherForecast(
       const maxTemp: number = data.daily.temperature_2m_max[i];
       const condition = classifyWeather(weatherCode, maxTemp);
       const adjustment = CONDITION_CONFIG[condition].adjustment;
-      const forecastSales = BASE_DAILY_SALES * (1 + adjustment);
+      const forecastSales = baseDailySales * (1 + adjustment);
 
       const dayDate = new Date(date + "T12:00:00Z");
       const dayName = dayDate.toLocaleDateString("en-GB", {
@@ -126,21 +129,20 @@ export async function fetchWeatherForecast(
         maxTemp,
         weatherCode,
         adjustment,
-        baseSales: BASE_DAILY_SALES,
+        baseSales: baseDailySales,
         forecastSales,
       };
     }
   );
 
   const weeklyTotal = days.reduce((sum, d) => sum + d.forecastSales, 0);
-  const adjustmentPct =
-    (weeklyTotal - BASE_WEEKLY_SALES) / BASE_WEEKLY_SALES;
+  const adjustmentPct = (weeklyTotal - baseWeeklySales) / baseWeeklySales;
 
   return {
     city: cityName,
     days,
     weeklyTotal,
-    weeklyBaseline: BASE_WEEKLY_SALES,
+    weeklyBaseline: baseWeeklySales,
     adjustmentPct,
   };
 }

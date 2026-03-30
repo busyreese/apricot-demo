@@ -66,6 +66,11 @@ export default function DashboardPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [weatherError, setWeatherError] = useState("");
 
+  const [baseline, setBaseline] = useState(500_000);
+  const [editingBaseline, setEditingBaseline] = useState(false);
+  const [baselineInput, setBaselineInput] = useState("");
+  const [savingBaseline, setSavingBaseline] = useState(false);
+
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
@@ -92,7 +97,27 @@ export default function DashboardPage() {
       .then((r) => r.json())
       .then((data) => Array.isArray(data) && setSavedForecasts(data))
       .catch(console.error);
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => data.weeklyBaseline && setBaseline(data.weeklyBaseline))
+      .catch(console.error);
   }, [status]);
+
+  const saveBaseline = async () => {
+    const val = Number(baselineInput.replace(/[^0-9.]/g, ""));
+    if (!val || val <= 0) return;
+    setSavingBaseline(true);
+    const res = await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weeklyBaseline: val }),
+    });
+    if (res.ok) {
+      setBaseline(val);
+      setEditingBaseline(false);
+    }
+    setSavingBaseline(false);
+  };
 
   const saveForecast = async () => {
     if (!forecast) return;
@@ -148,9 +173,50 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Sales Forecast</h1>
-            <p className="text-sm text-gray-400 mt-0.5">
-              7-day weather-driven revenue projection · Base £500k/week
-            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-sm text-gray-400">
+                7-day weather-driven projection · Base:
+              </span>
+              {editingBaseline ? (
+                <span className="flex items-center gap-1">
+                  <span className="text-sm text-gray-400">£</span>
+                  <input
+                    type="text"
+                    value={baselineInput}
+                    onChange={(e) => setBaselineInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") saveBaseline();
+                      if (e.key === "Escape") setEditingBaseline(false);
+                    }}
+                    autoFocus
+                    className="w-32 px-2 py-0.5 text-sm border border-orange-400 rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  />
+                  <button
+                    onClick={saveBaseline}
+                    disabled={savingBaseline}
+                    className="text-xs text-green-600 hover:text-green-700 font-medium disabled:opacity-50"
+                  >
+                    {savingBaseline ? "…" : "Save"}
+                  </button>
+                  <button
+                    onClick={() => setEditingBaseline(false)}
+                    className="text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    Cancel
+                  </button>
+                </span>
+              ) : (
+                <button
+                  onClick={() => {
+                    setBaselineInput(baseline.toString());
+                    setEditingBaseline(true);
+                  }}
+                  className="text-sm text-gray-600 font-medium hover:text-orange-500 transition-colors underline decoration-dotted underline-offset-2"
+                >
+                  £{baseline.toLocaleString("en-GB")}/week
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <select
@@ -209,7 +275,7 @@ export default function DashboardPage() {
             }
             sub={
               forecast
-                ? `${diff > 0 ? "+" : ""}${diff.toFixed(1)}% vs £500k baseline`
+                ? `${diff > 0 ? "+" : ""}${diff.toFixed(1)}% vs £${(baseline / 1000).toFixed(0)}k baseline`
                 : undefined
             }
             positive={diff > 0 ? true : diff < 0 ? false : null}
