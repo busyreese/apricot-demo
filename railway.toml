@@ -2,6 +2,6 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "npx prisma db push && next start"
+startCommand = "until npx prisma db push; do echo 'DB not ready, retrying in 3s...'; sleep 3; done && next start"
 restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 3
+restartPolicyMaxRetries = 5
