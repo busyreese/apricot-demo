@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String
+  name      String
+  createdAt DateTime   @default(now())
+  forecasts Forecast[]
+}
+
+model Forecast {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  location      String
+  weekStart     DateTime
+  totalForecast Float
+  baseline      Float
+  adjustmentPct Float
+  days          Json
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
